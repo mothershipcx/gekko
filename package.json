@@ -44,6 +44,7 @@
     "lakebtc_nodejs": "0.1.x",
     "lodash": "2.x",
     "moment": "^2.20.1",
+    "mothership-js": "git+https://github.com/mothershipcx/mothership-js.git",
     "node-wex": "^1.0.3",
     "node.bittrex.api": "^0.4.3",
     "okcoin-china": "0.0.7",

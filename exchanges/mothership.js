@@ -4,9 +4,9 @@ const _ = require('lodash');
 const util = require('../core/util');
 const Errors = require('../core/error');
 const log = require('../core/log');
-const marketData = require('./binance-markets.json');
 
 const Binance = require('binance');
+const Mothership = require('mothership-js');
 
 var Trader = function(config) {
   _.bindAll(this);
@@ -183,38 +183,8 @@ Trader.prototype.getFee = function(callback) {
 };
 
 Trader.prototype.getTicker = function(callback) {
-  var setTicker = function(err, data) {
-    log.debug(
-      `[binance.js] entering "getTicker" callback after api call, err: ${err} data: ${
-        (data || []).length
-      } symbols`
-    );
-    if (err) return callback(err);
-
-    var findSymbol = function(ticker) {
-      return ticker.symbol === this.pair;
-    };
-    var result = _.find(data, _.bind(findSymbol, this));
-
-    var ticker = {
-      ask: parseFloat(result.askPrice),
-      bid: parseFloat(result.bidPrice),
-    };
-
-    callback(undefined, ticker);
-  };
-
-  let handler = cb =>
-    this.binance._makeRequest(
-      {},
-      this.handleResponse('getTicker', cb),
-      'api/v1/ticker/allBookTickers'
-    );
-  util.retryCustom(
-    retryForever,
-    _.bind(handler, this),
-    _.bind(setTicker, this)
-  );
+  console.log('ticker')
+  return Mothership.getTicker(this.market).then(callback);
 };
 
 // Effectively counts the number of decimal places, so 0.001 or 0.234 results in 3
@@ -449,6 +419,7 @@ Trader.getCapabilities = function() {
     ],
     requires: ['key', 'secret'],
     providesHistory: false,
+    tid: 'tid',
     tradable: true,
   };
 };
