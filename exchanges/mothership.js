@@ -176,10 +176,10 @@ Trader.prototype.getPortfolio = function(callback) {
   );
 };
 
-// This uses the base maker fee (0.1%), and does not account for BNB discounts
 Trader.prototype.getFee = function(callback) {
-  var makerFee = 0.1;
-  callback(undefined, makerFee / 100);
+  // Temporarily zero.
+  var makerFee = 0;
+  callback(undefined, makerFee);
 };
 
 Trader.prototype.getTicker = function(callback) {
