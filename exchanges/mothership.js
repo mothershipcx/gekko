@@ -7,7 +7,9 @@ const Mothership = require('mothership-js');
 
 var Trader = function(config) {
   _.bindAll(this);
-  log.debug('created trader');
+  console.log('created trader');
+  console.log({ config: JSON.stringify(config) });
+  console.log({ configKey: config.key });
 
   if (_.isObject(config)) {
     this.key = config.key;
@@ -55,39 +57,41 @@ Trader.prototype.handleResponse = function(funcName, callback) {
 };
 
 Trader.prototype.getTrades = function(since, callback, descending) {
-  log.debug('in getTrades');
+  console.log('in getTrades');
+  console.log({ pair: this.pair });
+  console.log({ secret: this.secret });
   // todo: add a method in api to get all trades
   Mothership.getAccountTrades({
     userId: this.key,
     accountId: this.secret,
-    instrument: 'MSPTTHR', // cur: take from asset
+    instrument: this.pair,
   }).then(trades => {
-    log.debug({ trades });
+    console.log({ trades });
     const adaptedTrades = trades.map(trade => ({
       date: trade.time,
       price: trade.price,
       amount: trade.amount,
       tid: trade.id,
     }));
-    log.debug({ adaptedTrades });
+    console.log({ adaptedTrades });
 
     callback(undefined, adaptedTrades);
   });
 };
 
 Trader.prototype.getPortfolio = function(callback) {
-  log.debug('in getPortfolio');
+  console.log('in getPortfolio');
 
   Mothership.getAccount({
     userId: this.key,
     accountId: this.secret,
   }).then(account => {
-    log.debug({ account });
+    console.log({ account });
     const adaptedBalances = account.balances.map(balance => ({
       amount: balance.available,
-      name: balance.asset,
+      name: balance.asset.toUpperCase(),
     }));
-    log.debug({ adaptedBalances });
+    console.log({ adaptedBalances });
 
     callback(undefined, adaptedBalances);
   });
@@ -101,40 +105,42 @@ Trader.prototype.getFee = function(callback) {
 
 Trader.prototype.getTicker = function(callback) {
   console.log('get ticker in gekko');
-  return Mothership.getTicker({ instrument: this.market }).then(callback);
+  return Mothership.getTicker({ instrument: this.pair }).then(ticker =>
+    callback(undefined, ticker)
+  );
 };
 
 Trader.prototype.addOrder = function(side, amount, price, callback) {
-  log.debug('in addOrder');
+  console.log('in addOrder');
 
   Mothership.postOrder({
     userId: this.key,
     accountId: this.secret,
     amount,
     price,
-    instrument: 'MSPTTHR', // cur: take from asset
+    instrument: this.pair,
     side,
     type: 'limit',
   }).then(order => {
-    log.debug({ order });
+    console.log({ order });
 
     callback(undefined, order);
   });
 };
 
 Trader.prototype.getOrder = function(order, callback) {
-  log.debug('in getOrder');
+  console.log('in getOrder');
 
   Mothership.getOrder({
     id: order,
   }).then(order => {
-    log.debug({ order });
+    console.log({ order });
     const adaptedOrder = {
       date: order.time,
       price: order.price,
       amount: order.amount,
     };
-    log.debug({ adaptedOrder });
+    console.log({ adaptedOrder });
 
     callback(undefined, adaptedOrder);
   });
@@ -149,29 +155,29 @@ Trader.prototype.sell = function(amount, price, callback) {
 };
 
 Trader.prototype.checkOrder = function(order, callback) {
-  log.debug('in checkOrder');
+  console.log('in checkOrder');
 
   Mothership.getOrder({
     id: order,
   }).then(order => {
-    log.debug({ order });
+    console.log({ order });
     const isFilled = order.status === 'FILLED';
-    log.debug({ isFilled });
+    console.log({ isFilled });
 
     callback(undefined, isFilled);
   });
 };
 
 Trader.prototype.cancelOrder = function(order, callback) {
-  log.debug('in cancelOrder');
+  console.log('in cancelOrder');
 
   Mothership.deleteOrder({
     userId: this.key,
     accountId: this.secret,
     id: order,
-    instrument: 'MSPTTHR', // cur: take from asset
+    instrument: this.pair,
   }).then(order => {
-    log.debug({ order });
+    console.log({ order });
 
     callback(undefined);
   });
@@ -187,9 +193,9 @@ Trader.getCapabilities = function() {
     assets: ['MSP', 'BTC', 'EUR', 'LTC', 'ETH'],
     markets: [
       {
-        pair: ['MSP', 'TTHR'],
-        minimalOrder: { amount: 5, unit: 'currency' },
-        precision: 2,
+        pair: ['TTHR', 'MSP'],
+        minimalOrder: { amount: 1, unit: 'currency' },
+        precision: 3,
       },
 
       {
