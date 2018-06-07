@@ -131,83 +131,22 @@ Trader.prototype.getTicker = function(callback) {
   return Mothership.getTicker({ instrument: this.market }).then(callback);
 };
 
-// Effectively counts the number of decimal places, so 0.001 or 0.234 results in 3
-Trader.prototype.getPrecision = function(tickSize) {
-  if (!isFinite(tickSize)) return 0;
-  var e = 1,
-    p = 0;
-  while (Math.round(tickSize * e) / e !== tickSize) {
-    e *= 10;
-    p++;
-  }
-  return p;
-};
+Trader.prototype.addOrder = function(side, amount, price, callback) {
+  log.debug('in addOrder');
 
-Trader.prototype.roundAmount = function(amount, tickSize) {
-  var precision = 100000000;
-  var t = this.getPrecision(tickSize);
+  Mothership.postOrder({
+    userId: this.key,
+    accountId: this.secret,
+    amount,
+    price,
+    instrument: 'MSPTTHR', // cur: take from asset
+    side,
+    type: 'limit',
+  }).then(order => {
+    log.debug({ order });
 
-  if (Number.isInteger(t)) precision = Math.pow(10, t);
-
-  amount *= precision;
-  amount = Math.floor(amount);
-  amount /= precision;
-  return amount;
-};
-
-// Trader.prototype.getLotSize = function(tradeType, amount, price, callback) {
-//   amount = this.roundAmount(amount, this.market.minimalOrder.amount);
-//   if (amount < this.market.minimalOrder.amount)
-//     return callback(undefined, { amount: 0, price: 0 });
-//
-//   price = this.roundAmount(price, this.market.minimalOrder.price);
-//   if (price < this.market.minimalOrder.price)
-//     return callback(undefined, { amount: 0, price: 0 });
-//
-//   if (amount * price < this.market.minimalOrder.order)
-//     return callback(undefined, { amount: 0, price: 0 });
-//
-//   callback(undefined, { amount: amount, price: price });
-// };
-
-Trader.prototype.addOrder = function(tradeType, amount, price, callback) {
-  log.debug(
-    `[mothership.js] (addOrder) ${tradeType.toUpperCase()} ${amount} ${
-      this.asset
-    } @${price} ${this.currency}`
-  );
-
-  var setOrder = function(err, data) {
-    log.debug(
-      `[mothership.js] entering "setOrder" callback after api call, err: ${err} data: ${JSON.stringify(
-        data
-      )}`
-    );
-    if (err) return callback(err);
-
-    var txid = data.orderId;
-    log.debug(`[mothership.js] added order with txid: ${txid}`);
-
-    callback(undefined, txid);
-  };
-
-  let reqData = {
-    symbol: this.pair,
-    side: tradeType.toUpperCase(),
-    type: 'LIMIT',
-    timeInForce: 'GTC', // Good to cancel (I think, not really covered in docs, but is default)
-    quantity: amount,
-    price: price,
-    timestamp: new Date().getTime(),
-  };
-
-  let handler = cb =>
-    this.mothership.newOrder(reqData, this.handleResponse('addOrder', cb));
-  util.retryCustom(
-    retryCritical,
-    _.bind(handler, this),
-    _.bind(setOrder, this)
-  );
+    callback(undefined, order);
+  });
 };
 
 Trader.prototype.getOrder = function(order, callback) {
@@ -229,11 +168,11 @@ Trader.prototype.getOrder = function(order, callback) {
 };
 
 Trader.prototype.buy = function(amount, price, callback) {
-  this.addOrder('buy', amount, price, callback);
+  this.addOrder('bid', amount, price, callback);
 };
 
 Trader.prototype.sell = function(amount, price, callback) {
-  this.addOrder('sell', amount, price, callback);
+  this.addOrder('ask', amount, price, callback);
 };
 
 Trader.prototype.checkOrder = function(order, callback) {
