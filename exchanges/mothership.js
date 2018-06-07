@@ -82,10 +82,11 @@ Trader.prototype.handleResponse = function(funcName, callback) {
 };
 
 Trader.prototype.getTrades = function(since, callback, descending) {
+  log.debug('in getTrades');
   // todo: add a method in api to get all trades
   Mothership.getAccountTrades({
-    userId: 'user-id-98',
-    accountId: 'account-id-98',
+    userId: this.key,
+    accountId: this.secret,
     instrument: 'MSPTTHR', // cur: take from asset
   }).then(trades => {
     log.debug({ trades });
@@ -99,120 +100,24 @@ Trader.prototype.getTrades = function(since, callback, descending) {
 
     callback(undefined, adaptedTrades);
   });
-  // var processResults = function(err, data) {
-  //   if (err) return callback(err);
-  //
-  //   var parsedTrades = [];
-  //   _.each(
-  //     data,
-  //     function(trade) {
-  //       parsedTrades.push({
-  //         tid: trade.aggTradeId,
-  //         date: moment(trade.timestamp).unix(),
-  //         price: parseFloat(trade.price),
-  //         amount: parseFloat(trade.quantity),
-  //       });
-  //     },
-  //     this
-  //   );
-  //
-  //   if (descending) callback(null, parsedTrades.reverse());
-  //   else callback(undefined, parsedTrades);
-  // };
-  //
-  // var reqData = {
-  //   symbol: this.pair,
-  // };
-  //
-  // if (since) {
-  //   var endTs = moment(since)
-  //     .add(1, 'h')
-  //     .valueOf();
-  //   var nowTs = moment().valueOf();
-  //
-  //   reqData.startTime = moment(since).valueOf();
-  //   reqData.endTime = endTs > nowTs ? nowTs : endTs;
-  // }
-  //
-  // let handler = cb =>
-  //   this.mothership.aggTrades(reqData, this.handleResponse('getTrades', cb));
-  // util.retryCustom(
-  //   retryForever,
-  //   _.bind(handler, this),
-  //   _.bind(processResults, this)
-  // );
 };
 
 Trader.prototype.getPortfolio = function(callback) {
-  Mothership.getAccountTrades({
-    userId: 'user-id-98',
-    accountId: 'account-id-98',
-    instrument: 'MSPTTHR', // cur: take from asset
-  }).then(trades => {
-    log.debug({ trades });
-    const adaptedTrades = trades.map(trade => ({
-      date: trade.time,
-      price: trade.price,
-      amount: trade.amount,
-      tid: trade.id,
+  log.debug('in getPortfolio');
+
+  Mothership.getAccount({
+    userId: this.key,
+    accountId: this.secret,
+  }).then(account => {
+    log.debug({ account });
+    const adaptedBalances = account.balances.map(balance => ({
+      amount: balance.available,
+      name: balance.asset,
     }));
-    log.debug({ adaptedTrades });
+    log.debug({ adaptedBalances });
 
-    callback(undefined, adaptedTrades);
+    callback(undefined, adaptedBalances);
   });
-
-  var setBalance = function(err, data) {
-    log.debug(
-      `[mothership.js] entering "setBalance" callback after api call, err: ${err} data: ${JSON.stringify(
-        data
-      )}`
-    );
-    if (err) return callback(err);
-
-    var findAsset = function(item) {
-      return item.asset === this.asset;
-    };
-    var assetAmount = parseFloat(
-      _.find(data.balances, _.bind(findAsset, this)).free
-    );
-
-    var findCurrency = function(item) {
-      return item.asset === this.currency;
-    };
-    var currencyAmount = parseFloat(
-      _.find(data.balances, _.bind(findCurrency, this)).free
-    );
-
-    if (!_.isNumber(assetAmount) || _.isNaN(assetAmount)) {
-      log.error(
-        `mothership did not return portfolio for ${this.asset}, assuming 0.`
-      );
-      assetAmount = 0;
-    }
-
-    if (!_.isNumber(currencyAmount) || _.isNaN(currencyAmount)) {
-      log.error(
-        `mothership did not return portfolio for ${this.currency}, assuming 0.`
-      );
-      currencyAmount = 0;
-    }
-
-    var portfolio = [
-      { name: this.asset, amount: assetAmount },
-      { name: this.currency, amount: currencyAmount },
-      m,
-    ];
-
-    return callback(undefined, portfolio);
-  };
-
-  let handler = cb =>
-    this.mothership.account({}, this.handleResponse('getPortfolio', cb));
-  util.retryCustom(
-    retryForever,
-    _.bind(handler, this),
-    _.bind(setBalance, this)
-  );
 };
 
 Trader.prototype.getFee = function(callback) {
