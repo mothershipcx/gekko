@@ -237,31 +237,17 @@ Trader.prototype.sell = function(amount, price, callback) {
 };
 
 Trader.prototype.checkOrder = function(order, callback) {
-  var check = function(err, data) {
-    log.debug(
-      `[mothership.js] entering "checkOrder" callback after api call, err ${err} data: ${JSON.stringify(
-        data
-      )}`
-    );
-    if (err) return callback(err);
+  log.debug('in checkOrder');
 
-    var stillThere =
-      data.status === 'NEW' || data.status === 'PARTIALLY_FILLED';
-    var canceledManually =
-      data.status === 'CANCELED' ||
-      data.status === 'REJECTED' ||
-      data.status === 'EXPIRED';
-    callback(undefined, !stillThere && !canceledManually);
-  };
+  Mothership.getOrder({
+    id: order,
+  }).then(order => {
+    log.debug({ order });
+    const isFilled = order.status === 'FILLED';
+    log.debug({ isFilled });
 
-  let reqData = {
-    symbol: this.pair,
-    orderId: order,
-  };
-
-  let handler = cb =>
-    this.mothership.queryOrder(reqData, this.handleResponse('checkOrder', cb));
-  util.retryCustom(retryCritical, _.bind(handler, this), _.bind(check, this));
+    callback(undefined, isFilled);
+  });
 };
 
 Trader.prototype.cancelOrder = function(order, callback) {
