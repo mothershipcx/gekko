@@ -155,20 +155,20 @@ Trader.prototype.roundAmount = function(amount, tickSize) {
   return amount;
 };
 
-Trader.prototype.getLotSize = function(tradeType, amount, price, callback) {
-  amount = this.roundAmount(amount, this.market.minimalOrder.amount);
-  if (amount < this.market.minimalOrder.amount)
-    return callback(undefined, { amount: 0, price: 0 });
-
-  price = this.roundAmount(price, this.market.minimalOrder.price);
-  if (price < this.market.minimalOrder.price)
-    return callback(undefined, { amount: 0, price: 0 });
-
-  if (amount * price < this.market.minimalOrder.order)
-    return callback(undefined, { amount: 0, price: 0 });
-
-  callback(undefined, { amount: amount, price: price });
-};
+// Trader.prototype.getLotSize = function(tradeType, amount, price, callback) {
+//   amount = this.roundAmount(amount, this.market.minimalOrder.amount);
+//   if (amount < this.market.minimalOrder.amount)
+//     return callback(undefined, { amount: 0, price: 0 });
+//
+//   price = this.roundAmount(price, this.market.minimalOrder.price);
+//   if (price < this.market.minimalOrder.price)
+//     return callback(undefined, { amount: 0, price: 0 });
+//
+//   if (amount * price < this.market.minimalOrder.order)
+//     return callback(undefined, { amount: 0, price: 0 });
+//
+//   callback(undefined, { amount: amount, price: price });
+// };
 
 Trader.prototype.addOrder = function(tradeType, amount, price, callback) {
   log.debug(
@@ -211,32 +211,21 @@ Trader.prototype.addOrder = function(tradeType, amount, price, callback) {
 };
 
 Trader.prototype.getOrder = function(order, callback) {
-  var get = function(err, data) {
-    log.debug(
-      `[mothership.js] entering "getOrder" callback after api call, err ${err} data: ${JSON.stringify(
-        data
-      )}`
-    );
-    if (err) return callback(err);
+  log.debug('in getOrder');
 
-    var price = parseFloat(data.price);
-    var amount = parseFloat(data.executedQty);
+  Mothership.getOrder({
+    id: order,
+  }).then(order => {
+    log.debug({ order });
+    const adaptedOrder = {
+      date: order.time,
+      price: order.price,
+      amount: order.amount,
+    };
+    log.debug({ adaptedOrder });
 
-    // Data.time is a 13 digit millisecon unix time stamp.
-    // https://momentjs.com/docs/#/parsing/unix-timestamp-milliseconds/
-    var date = moment(data.time);
-
-    callback(undefined, { price, amount, date });
-  }.bind(this);
-
-  let reqData = {
-    symbol: this.pair,
-    orderId: order,
-  };
-
-  let handler = cb =>
-    this.mothership.queryOrder(reqData, this.handleResponse('getOrder', cb));
-  util.retryCustom(retryCritical, _.bind(handler, this), _.bind(get, this));
+    callback(undefined, adaptedOrder);
+  });
 };
 
 Trader.prototype.buy = function(amount, price, callback) {
