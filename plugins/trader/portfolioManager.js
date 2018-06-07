@@ -19,6 +19,7 @@ var checker = require(dirs.core + 'exchangeChecker.js');
 var moment = require('moment');
 
 var Manager = function(conf) {
+  console.log('started manager')
   _.bindAll(this);
 
   var error = checker.cantTrade(conf);
@@ -44,6 +45,7 @@ var Manager = function(conf) {
   this.currency = conf.currency;
   this.asset = conf.asset;
   this.keepAsset = 0;
+  log.debug('started manager kek')
 
   if(_.isNumber(conf.keepAsset)) {
     log.debug('Keep asset is active. Will try to keep at least ' + conf.keepAsset + ' ' + conf.asset);
@@ -126,10 +128,11 @@ Manager.prototype.setTicker = function(callback) {
 
     if(err)
       util.die(err);
-    
+
     if(_.isFunction(callback))
       callback();
   }.bind(this);
+  console.log('setting ticker')
   this.exchange.getTicker(set);
 };
 

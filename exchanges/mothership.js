@@ -5,11 +5,13 @@ const util = require('../core/util');
 const Errors = require('../core/error');
 const log = require('../core/log');
 
-const Binance = require('binance');
+// const mothership = require('mothership');
 const Mothership = require('mothership-js');
 
 var Trader = function(config) {
   _.bindAll(this);
+  console.log('created trader console');
+  log.debug('created trader');
 
   if (_.isObject(config)) {
     this.key = config.key;
@@ -19,20 +21,20 @@ var Trader = function(config) {
   }
 
   this.pair = this.asset + this.currency;
-  this.name = 'binance';
+  this.name = 'mothership';
 
   this.market = _.find(Trader.getCapabilities().markets, market => {
     return market.pair[0] === this.currency && market.pair[1] === this.asset;
   });
 
-  this.binance = new Binance.BinanceRest({
-    key: this.key,
-    secret: this.secret,
-    timeout: 15000,
-    recvWindow: 60000, // suggested by binance
-    disableBeautification: false,
-    handleDrift: true,
-  });
+  // this.mothership = new mothership.mothershipRest({
+  //   key: this.key,
+  //   secret: this.secret,
+  //   timeout: 15000,
+  //   recvWindow: 60000, // suggested by mothership
+  //   disableBeautification: false,
+  //   handleDrift: true,
+  // });
 };
 
 var retryCritical = {
@@ -58,13 +60,15 @@ Trader.prototype.processError = function(funcName, error) {
 
   if (!error.message || !error.message.match(recoverableErrors)) {
     log.error(
-      `[binance.js] (${funcName}) returned an irrecoverable error: ${error}`
+      `[mothership.js] (${funcName}) returned an irrecoverable error: ${error}`
     );
-    return new Errors.AbortError('[binance.js] ' + error.message || error);
+    return new Errors.AbortError('[mothership.js] ' + error.message || error);
   }
 
-  log.debug(`[binance.js] (${funcName}) returned an error, retrying: ${error}`);
-  return new Errors.RetryError('[binance.js] ' + error.message || error);
+  log.debug(
+    `[mothership.js] (${funcName}) returned an error, retrying: ${error}`
+  );
+  return new Errors.RetryError('[mothership.js] ' + error.message || error);
 };
 
 Trader.prototype.handleResponse = function(funcName, callback) {
@@ -78,54 +82,88 @@ Trader.prototype.handleResponse = function(funcName, callback) {
 };
 
 Trader.prototype.getTrades = function(since, callback, descending) {
-  var processResults = function(err, data) {
-    if (err) return callback(err);
+  // todo: add a method in api to get all trades
+  Mothership.getAccountTrades({
+    userId: 'user-id-98',
+    accountId: 'account-id-98',
+    instrument: 'MSPTTHR', // cur: take from asset
+  }).then(trades => {
+    log.debug({ trades });
+    const adaptedTrades = trades.map(trade => ({
+      date: trade.time,
+      price: trade.price,
+      amount: trade.amount,
+      tid: trade.id,
+    }));
+    log.debug({ adaptedTrades });
 
-    var parsedTrades = [];
-    _.each(
-      data,
-      function(trade) {
-        parsedTrades.push({
-          tid: trade.aggTradeId,
-          date: moment(trade.timestamp).unix(),
-          price: parseFloat(trade.price),
-          amount: parseFloat(trade.quantity),
-        });
-      },
-      this
-    );
-
-    if (descending) callback(null, parsedTrades.reverse());
-    else callback(undefined, parsedTrades);
-  };
-
-  var reqData = {
-    symbol: this.pair,
-  };
-
-  if (since) {
-    var endTs = moment(since)
-      .add(1, 'h')
-      .valueOf();
-    var nowTs = moment().valueOf();
-
-    reqData.startTime = moment(since).valueOf();
-    reqData.endTime = endTs > nowTs ? nowTs : endTs;
-  }
-
-  let handler = cb =>
-    this.binance.aggTrades(reqData, this.handleResponse('getTrades', cb));
-  util.retryCustom(
-    retryForever,
-    _.bind(handler, this),
-    _.bind(processResults, this)
-  );
+    callback(undefined, adaptedTrades);
+  });
+  // var processResults = function(err, data) {
+  //   if (err) return callback(err);
+  //
+  //   var parsedTrades = [];
+  //   _.each(
+  //     data,
+  //     function(trade) {
+  //       parsedTrades.push({
+  //         tid: trade.aggTradeId,
+  //         date: moment(trade.timestamp).unix(),
+  //         price: parseFloat(trade.price),
+  //         amount: parseFloat(trade.quantity),
+  //       });
+  //     },
+  //     this
+  //   );
+  //
+  //   if (descending) callback(null, parsedTrades.reverse());
+  //   else callback(undefined, parsedTrades);
+  // };
+  //
+  // var reqData = {
+  //   symbol: this.pair,
+  // };
+  //
+  // if (since) {
+  //   var endTs = moment(since)
+  //     .add(1, 'h')
+  //     .valueOf();
+  //   var nowTs = moment().valueOf();
+  //
+  //   reqData.startTime = moment(since).valueOf();
+  //   reqData.endTime = endTs > nowTs ? nowTs : endTs;
+  // }
+  //
+  // let handler = cb =>
+  //   this.mothership.aggTrades(reqData, this.handleResponse('getTrades', cb));
+  // util.retryCustom(
+  //   retryForever,
+  //   _.bind(handler, this),
+  //   _.bind(processResults, this)
+  // );
 };
 
 Trader.prototype.getPortfolio = function(callback) {
+  Mothership.getAccountTrades({
+    userId: 'user-id-98',
+    accountId: 'account-id-98',
+    instrument: 'MSPTTHR', // cur: take from asset
+  }).then(trades => {
+    log.debug({ trades });
+    const adaptedTrades = trades.map(trade => ({
+      date: trade.time,
+      price: trade.price,
+      amount: trade.amount,
+      tid: trade.id,
+    }));
+    log.debug({ adaptedTrades });
+
+    callback(undefined, adaptedTrades);
+  });
+
   var setBalance = function(err, data) {
     log.debug(
-      `[binance.js] entering "setBalance" callback after api call, err: ${err} data: ${JSON.stringify(
+      `[mothership.js] entering "setBalance" callback after api call, err: ${err} data: ${JSON.stringify(
         data
       )}`
     );
@@ -147,14 +185,14 @@ Trader.prototype.getPortfolio = function(callback) {
 
     if (!_.isNumber(assetAmount) || _.isNaN(assetAmount)) {
       log.error(
-        `Binance did not return portfolio for ${this.asset}, assuming 0.`
+        `mothership did not return portfolio for ${this.asset}, assuming 0.`
       );
       assetAmount = 0;
     }
 
     if (!_.isNumber(currencyAmount) || _.isNaN(currencyAmount)) {
       log.error(
-        `Binance did not return portfolio for ${this.currency}, assuming 0.`
+        `mothership did not return portfolio for ${this.currency}, assuming 0.`
       );
       currencyAmount = 0;
     }
@@ -162,13 +200,14 @@ Trader.prototype.getPortfolio = function(callback) {
     var portfolio = [
       { name: this.asset, amount: assetAmount },
       { name: this.currency, amount: currencyAmount },
+      m,
     ];
 
     return callback(undefined, portfolio);
   };
 
   let handler = cb =>
-    this.binance.account({}, this.handleResponse('getPortfolio', cb));
+    this.mothership.account({}, this.handleResponse('getPortfolio', cb));
   util.retryCustom(
     retryForever,
     _.bind(handler, this),
@@ -183,8 +222,8 @@ Trader.prototype.getFee = function(callback) {
 };
 
 Trader.prototype.getTicker = function(callback) {
-  console.log('ticker')
-  return Mothership.getTicker(this.market).then(callback);
+  console.log('get ticker in gekko');
+  return Mothership.getTicker({ instrument: this.market }).then(callback);
 };
 
 // Effectively counts the number of decimal places, so 0.001 or 0.234 results in 3
@@ -228,21 +267,21 @@ Trader.prototype.getLotSize = function(tradeType, amount, price, callback) {
 
 Trader.prototype.addOrder = function(tradeType, amount, price, callback) {
   log.debug(
-    `[binance.js] (addOrder) ${tradeType.toUpperCase()} ${amount} ${
+    `[mothership.js] (addOrder) ${tradeType.toUpperCase()} ${amount} ${
       this.asset
     } @${price} ${this.currency}`
   );
 
   var setOrder = function(err, data) {
     log.debug(
-      `[binance.js] entering "setOrder" callback after api call, err: ${err} data: ${JSON.stringify(
+      `[mothership.js] entering "setOrder" callback after api call, err: ${err} data: ${JSON.stringify(
         data
       )}`
     );
     if (err) return callback(err);
 
     var txid = data.orderId;
-    log.debug(`[binance.js] added order with txid: ${txid}`);
+    log.debug(`[mothership.js] added order with txid: ${txid}`);
 
     callback(undefined, txid);
   };
@@ -258,7 +297,7 @@ Trader.prototype.addOrder = function(tradeType, amount, price, callback) {
   };
 
   let handler = cb =>
-    this.binance.newOrder(reqData, this.handleResponse('addOrder', cb));
+    this.mothership.newOrder(reqData, this.handleResponse('addOrder', cb));
   util.retryCustom(
     retryCritical,
     _.bind(handler, this),
@@ -269,7 +308,7 @@ Trader.prototype.addOrder = function(tradeType, amount, price, callback) {
 Trader.prototype.getOrder = function(order, callback) {
   var get = function(err, data) {
     log.debug(
-      `[binance.js] entering "getOrder" callback after api call, err ${err} data: ${JSON.stringify(
+      `[mothership.js] entering "getOrder" callback after api call, err ${err} data: ${JSON.stringify(
         data
       )}`
     );
@@ -291,7 +330,7 @@ Trader.prototype.getOrder = function(order, callback) {
   };
 
   let handler = cb =>
-    this.binance.queryOrder(reqData, this.handleResponse('getOrder', cb));
+    this.mothership.queryOrder(reqData, this.handleResponse('getOrder', cb));
   util.retryCustom(retryCritical, _.bind(handler, this), _.bind(get, this));
 };
 
@@ -306,7 +345,7 @@ Trader.prototype.sell = function(amount, price, callback) {
 Trader.prototype.checkOrder = function(order, callback) {
   var check = function(err, data) {
     log.debug(
-      `[binance.js] entering "checkOrder" callback after api call, err ${err} data: ${JSON.stringify(
+      `[mothership.js] entering "checkOrder" callback after api call, err ${err} data: ${JSON.stringify(
         data
       )}`
     );
@@ -327,7 +366,7 @@ Trader.prototype.checkOrder = function(order, callback) {
   };
 
   let handler = cb =>
-    this.binance.queryOrder(reqData, this.handleResponse('checkOrder', cb));
+    this.mothership.queryOrder(reqData, this.handleResponse('checkOrder', cb));
   util.retryCustom(retryCritical, _.bind(handler, this), _.bind(check, this));
 };
 
@@ -335,7 +374,7 @@ Trader.prototype.cancelOrder = function(order, callback) {
   // callback for cancelOrder should be true if the order was already filled, otherwise false
   var cancel = function(err, data) {
     log.debug(
-      `[binance.js] entering "cancelOrder" callback after api call, err ${err} data: ${JSON.stringify(
+      `[mothership.js] entering "cancelOrder" callback after api call, err ${err} data: ${JSON.stringify(
         data
       )}`
     );
@@ -355,7 +394,10 @@ Trader.prototype.cancelOrder = function(order, callback) {
   };
 
   let handler = cb =>
-    this.binance.cancelOrder(reqData, this.handleResponse('cancelOrder', cb));
+    this.mothership.cancelOrder(
+      reqData,
+      this.handleResponse('cancelOrder', cb)
+    );
   util.retryCustom(retryForever, _.bind(handler, this), _.bind(cancel, this));
 };
 
