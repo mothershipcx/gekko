@@ -1,16 +1,12 @@
-const moment = require('moment');
 const _ = require('lodash');
 
-const util = require('../core/util');
 const Errors = require('../core/error');
 const log = require('../core/log');
 
-// const mothership = require('mothership');
 const Mothership = require('mothership-js');
 
 var Trader = function(config) {
   _.bindAll(this);
-  console.log('created trader console');
   log.debug('created trader');
 
   if (_.isObject(config)) {
@@ -26,29 +22,6 @@ var Trader = function(config) {
   this.market = _.find(Trader.getCapabilities().markets, market => {
     return market.pair[0] === this.currency && market.pair[1] === this.asset;
   });
-
-  // this.mothership = new mothership.mothershipRest({
-  //   key: this.key,
-  //   secret: this.secret,
-  //   timeout: 15000,
-  //   recvWindow: 60000, // suggested by mothership
-  //   disableBeautification: false,
-  //   handleDrift: true,
-  // });
-};
-
-var retryCritical = {
-  retries: 10,
-  factor: 1.2,
-  minTimeout: 1 * 1000,
-  maxTimeout: 30 * 1000,
-};
-
-var retryForever = {
-  forever: true,
-  factor: 1.2,
-  minTimeout: 10 * 1000,
-  maxTimeout: 30 * 1000,
 };
 
 var recoverableErrors = new RegExp(
@@ -190,34 +163,18 @@ Trader.prototype.checkOrder = function(order, callback) {
 };
 
 Trader.prototype.cancelOrder = function(order, callback) {
-  // callback for cancelOrder should be true if the order was already filled, otherwise false
-  var cancel = function(err, data) {
-    log.debug(
-      `[mothership.js] entering "cancelOrder" callback after api call, err ${err} data: ${JSON.stringify(
-        data
-      )}`
-    );
-    if (err) {
-      if (data && data.msg === 'UNKNOWN_ORDER') {
-        // this seems to be the response we get when an order was filled
-        return callback(true); // tell the thing the order was already filled
-      }
-      return callback(err);
-    }
+  log.debug('in cancelOrder');
+
+  Mothership.deleteOrder({
+    userId: this.key,
+    accountId: this.secret,
+    id: order,
+    instrument: 'MSPTTHR', // cur: take from asset
+  }).then(order => {
+    log.debug({ order });
+
     callback(undefined);
-  };
-
-  let reqData = {
-    symbol: this.pair,
-    orderId: order,
-  };
-
-  let handler = cb =>
-    this.mothership.cancelOrder(
-      reqData,
-      this.handleResponse('cancelOrder', cb)
-    );
-  util.retryCustom(retryForever, _.bind(handler, this), _.bind(cancel, this));
+  });
 };
 
 Trader.prototype.initMarkets = function(callback) {};
@@ -226,9 +183,15 @@ Trader.getCapabilities = function() {
   return {
     name: 'Mothership',
     slug: 'mothership',
-    currencies: ['USD', 'EUR', 'BTC'],
-    assets: ['BTC', 'EUR', 'LTC', 'ETH'],
+    currencies: ['TTHR', 'USD', 'EUR', 'BTC'],
+    assets: ['MSP', 'BTC', 'EUR', 'LTC', 'ETH'],
     markets: [
+      {
+        pair: ['MSP', 'TTHR'],
+        minimalOrder: { amount: 5, unit: 'currency' },
+        precision: 2,
+      },
+
       {
         pair: ['USD', 'EUR'],
         minimalOrder: { amount: 5, unit: 'currency' },
