@@ -1,6 +1,6 @@
-// 
+//
 // Small wrapper that only propagates new trades.
-// 
+//
 // Expects trade batches to be written like:
 // [
 //  {
@@ -16,7 +16,7 @@
 //    amount: x
 //  }
 // ]
-// 
+//
 // Emits 'new trades' event with:
 // {
 //   amount: x,
@@ -25,7 +25,7 @@
 //   first: (trade),
 //   last: (trade)
 //   data: [
-//      // batch of new trades with 
+//      // batch of new trades with
 //      // moments instead of timestamps
 //   ]
 // }
@@ -48,22 +48,31 @@ util.makeEventEmitter(TradeBatcher);
 
 TradeBatcher.prototype.write = function(batch) {
 
+  console.log('in batcher write')
   if(!_.isArray(batch))
     throw 'batch is not an array';
 
-  if(_.isEmpty(batch))
+  if(_.isEmpty(batch)) {
+
+    console.log('empty batch')
     return log.debug('Trade fetch came back empty.');
+  }
 
   var filterBatch = this.filter(batch);
 
   var amount = _.size(filterBatch);
-  if(!amount)
+  if(!amount) {
+    console.log('no new')
     return log.debug('No new trades.');
+
+  }
 
   var momentBatch = this.convertDates(filterBatch);
 
   var last = _.last(momentBatch);
   var first = _.first(momentBatch);
+  console.log({last})
+  console.log({first})
 
   log.debug(
     'Processing', amount, 'new trades.',
@@ -75,6 +84,7 @@ TradeBatcher.prototype.write = function(batch) {
     '(' + first.date.from(last.date, true) + ')'
   );
 
+  console.log('emitting new batch')
   this.emit('new batch', {
     amount: amount,
     start: first.date,
@@ -96,6 +106,7 @@ TradeBatcher.prototype.filter = function(batch) {
   // make sure we're not trying to count
   // beyond infinity
   var lastTid = _.last(batch)[this.tid];
+  console.log({lastTid})
   if(lastTid === lastTid + 1)
     util.die('trade tid is max int, Gekko can\'t process..');
 
@@ -110,13 +121,21 @@ TradeBatcher.prototype.filter = function(batch) {
   // TODO: optimize by stopping as soon as the
   // first trade is too old (reverse first)
   return _.filter(batch, function(trade) {
+    // console.log({last: this.last})
+    // console.log({tid: this.tid})
     return this.last < trade[this.tid];
   }, this);
 }
 
 TradeBatcher.prototype.convertDates = function(batch) {
+  console.log('covnerting dates in batcher')
+  console.log({tradeDateFirst: batch[0].date})
+  console.log({tradeDateFirstUnix: moment.unix( batch[0].date )})
+  console.log({tradeDateFirstUnixUtc: moment.unix( batch[0].date ).utc()})
   return _.map(_.cloneDeep(batch), function(trade) {
+    // console.log('date Before:', trade.date)
     trade.date = moment.unix(trade.date).utc();
+    // console.log('date After:', trade.date)
     return trade;
   });
 }

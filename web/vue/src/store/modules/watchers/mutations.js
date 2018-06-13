@@ -1,6 +1,7 @@
 import Vue from 'vue'
 
 export const addWatcher = (state, watcher) => {
+  console.log('adding a watcher in state')
   state.watchers.push(watcher);
   return state;
 }

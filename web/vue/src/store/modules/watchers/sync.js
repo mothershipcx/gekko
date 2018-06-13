@@ -13,6 +13,7 @@ const init = () => {
 const sync = () => {
 
   bus.$on('new_gekko', data => {
+    console.log('received a new gekko...')
     if(data.gekko.type === 'watcher')
       store.commit('addWatcher', data.gekko);
   });

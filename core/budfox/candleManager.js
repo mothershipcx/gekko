@@ -29,6 +29,7 @@ var Manager = function() {
 
 util.makeEventEmitter(Manager);
 Manager.prototype.processTrades = function(tradeBatch) {
+  console.log('in processTrades in candleManager')
   this.candleCreator.write(tradeBatch);
 }
 

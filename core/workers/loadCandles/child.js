@@ -1,4 +1,5 @@
 var start = (config, candleSize, daterange) => {
+  // console.log('in start of child of loadCandles')
   var util = require(__dirname + '/../../util');
 
   // force correct gekko env

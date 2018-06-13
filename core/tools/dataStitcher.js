@@ -43,7 +43,7 @@ Stitcher.prototype.prepareHistoricalData = function(done) {
 
   var requiredHistory = config.tradingAdvisor.candleSize * config.tradingAdvisor.historySize;
   var Reader = require(dirs.plugins + config.adapter + '/reader');
-  
+
   this.reader = new Reader;
 
   log.info(
@@ -97,7 +97,7 @@ Stitcher.prototype.prepareHistoricalData = function(done) {
       log.info('\tPreventing Gekko from requesting', minutesAgo, 'minutes of history.');
       idealExchangeStartTime = endTime.clone().subtract(maxMinutesAgo, 'minutes');
       idealExchangeStartTimeTS = idealExchangeStartTime.unix();
-    } 
+    }
 
     log.debug('\tFetching exchange data since', this.ago(idealExchangeStartTimeTS))
     this.checkExchangeTrades(idealExchangeStartTime, function(err, exchangeData) {
@@ -191,6 +191,8 @@ Stitcher.prototype.checkExchangeTrades = function(since, next) {
 
   var watcher = new DataProvider(exchangeConfig);
 
+  console.log('in dataStitcher calling getTrades on watcher')
+  console.log(watcher)
   watcher.getTrades(since, function(e, d) {
     if(_.isEmpty(d))
       return util.die(

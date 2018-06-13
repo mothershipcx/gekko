@@ -36,6 +36,7 @@ const fork = require('child_process').fork;
 const _ = require('lodash');
 
 module.exports = (config, callback) => {
+  // console.log('in loadCandles parent worker')
   var debug = typeof v8debug === 'object';
   if (debug) {
     process.execArgv = [];

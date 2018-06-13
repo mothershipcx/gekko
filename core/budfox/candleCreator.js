@@ -61,6 +61,9 @@ var CandleCreator = function() {
 util.makeEventEmitter(CandleCreator);
 
 CandleCreator.prototype.write = function(batch) {
+  // console.log('in CandleCreator write')
+  // console.log({batch})
+
   var trades = batch.data;
 
   if(_.isEmpty(trades))
@@ -68,16 +71,25 @@ CandleCreator.prototype.write = function(batch) {
 
   trades = this.filter(trades);
   this.fillBuckets(trades);
+  // console.log('buckets')
+  // console.log(this.buckets)
+  // '50412-03-30 22:51':
+  // [ { date: moment.utc("+050412-03-30T22:51:03.000+00:00"),
+  //   price: 844,
+  //   amount: 204,
+  //   tid: 1528689624663 } ],
   var candles = this.calculateCandles();
+  // console.log({candles})
 
   candles = this.addEmptyCandles(candles);
 
   if(_.isEmpty(candles))
-    return;  
+    return;
 
   // the last candle is not complete
   this.threshold = candles.pop().start;
 
+  // console.log({candles})
   this.emit('candles', candles);
 }
 
@@ -91,6 +103,7 @@ CandleCreator.prototype.filter = function(trades) {
 
 // put each trade in a per minute bucket
 CandleCreator.prototype.fillBuckets = function(trades) {
+  // console.log({ firstDate: trades[0].date })
   _.each(trades, function(trade) {
     var minute = trade.date.format('YYYY-MM-DD HH:mm');
 

@@ -153,10 +153,13 @@ Manager.prototype.trade = function(what, retry) {
     return this.cancelLastOrder(() => this.trade(what));
 
   this.action = what;
+  console.log('in trade, ticker:')
+  console.log(this.ticker)
 
   var act = function() {
     var amount, price;
 
+    console.log('in act of Manager')
     if(what === 'BUY') {
 
       amount = this.getBalance(this.currency) / this.ticker.ask;
@@ -216,6 +219,15 @@ Manager.prototype.buy = function(amount, price) {
       'price:',
       order.price
     );
+    console.log(
+      'Attempting to BUY',
+      order.amount,
+      this.asset,
+      'at',
+      this.exchange.name,
+      'price:',
+      order.price
+    );
 
     this.exchange.buy(order.amount, order.price, this.noteOrder);
   }
@@ -248,6 +260,15 @@ Manager.prototype.sell = function(amount, price) {
     }
 
     log.info(
+      'Attempting to SELL',
+      order.amount,
+      this.asset,
+      'at',
+      this.exchange.name,
+      'price:',
+      order.price
+    );
+    console.log(
       'Attempting to SELL',
       order.amount,
       this.asset,

@@ -72,6 +72,8 @@ Fetcher.prototype._fetch = function(since) {
   if(++this.tries >= this.limit)
     return;
 
+  // console.log('in marketFetcher calling getTrades on exchangeTrader')
+  // console.log(this.exchangeTrader)
   this.exchangeTrader.getTrades(since, this.processTrades, false);
 }
 
@@ -89,6 +91,8 @@ Fetcher.prototype.fetch = function() {
 }
 
 Fetcher.prototype.processTrades = function(err, trades) {
+  // console.log('in processTrades ')
+  // console.log({trades: trades[0]})
   if(err || _.isEmpty(trades)) {
     if(err) {
       log.warn(this.exchange.name, 'returned an error while fetching trades:', err);
@@ -98,10 +102,12 @@ Fetcher.prototype.processTrades = function(err, trades) {
     setTimeout(this._fetch, +moment.duration('s', 1));
     return;
   }
+  // console.log('going to call write on batcher')
   this.batcher.write(trades);
 }
 
 Fetcher.prototype.relayTrades = function(batch) {
+  // console.log('in relayTrades of Fetcher')
   this.emit('trades batch', batch);
 }
 

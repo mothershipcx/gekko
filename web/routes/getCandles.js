@@ -33,6 +33,7 @@ const candleLoader = promisify(require('../../core/workers/loadCandles/parent'))
 const base = require('./baseConfig');
 
 module.exports = function *() {
+  // console.log('in getCandles route')
 
   config = {};
   _.merge(config, base, this.request.body);

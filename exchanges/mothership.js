@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const moment = require('moment');
 
 const Errors = require('../core/error');
 const log = require('../core/log');
@@ -14,6 +15,9 @@ var Trader = function(config) {
   if (_.isObject(config)) {
     this.key = config.key;
     this.secret = config.secret;
+    // cur: tmp
+    this.key = 'wrIOn5EaTHQTuDTafLknmMsxOJn1';
+    this.secret = '-LEj9plimcKlqKw9I-b3';
     this.currency = config.currency.toUpperCase();
     this.asset = config.asset.toUpperCase();
   }
@@ -60,29 +64,30 @@ Trader.prototype.getTrades = function(since, callback, descending) {
   console.log('in getTrades');
   console.log({ pair: this.pair });
   console.log({ secret: this.secret });
-  // todo: add a method in api to get all trades
-  Mothership.getAccountTrades({
-    userId: this.key,
-    accountId: this.secret,
+  return Mothership.getTrades({
     instrument: this.pair,
   }).then(trades => {
-    console.log({ trades });
+    // console.log({ trades });
     const adaptedTrades = trades.map(trade => ({
-      date: trade.time,
+      date: moment(trade.time).unix(),
       price: trade.price,
       amount: trade.amount,
-      tid: trade.id,
+      // cur: experiment
+      tid: trade.time,
     }));
-    console.log({ adaptedTrades });
+    // console.log({ adaptedTrades });
 
-    callback(undefined, adaptedTrades);
+    console.log('adapted trades')
+    return callback(undefined, adaptedTrades);
   });
 };
 
 Trader.prototype.getPortfolio = function(callback) {
   console.log('in getPortfolio');
+  console.log({key: this.key});
+  console.log({secret: this.secret});
 
-  Mothership.getAccount({
+  return Mothership.getAccount({
     userId: this.key,
     accountId: this.secret,
   }).then(account => {
@@ -112,8 +117,14 @@ Trader.prototype.getTicker = function(callback) {
 
 Trader.prototype.addOrder = function(side, amount, price, callback) {
   console.log('in addOrder');
+  console.log({side})
+  console.log({amount})
+  console.log({price})
+  console.log({userId: this.key})
+  console.log({accountId: this.secret})
+  console.log({instument: this.pair})
 
-  Mothership.postOrder({
+  return Mothership.postOrder({
     userId: this.key,
     accountId: this.secret,
     amount,
@@ -131,7 +142,7 @@ Trader.prototype.addOrder = function(side, amount, price, callback) {
 Trader.prototype.getOrder = function(order, callback) {
   console.log('in getOrder');
 
-  Mothership.getOrder({
+  return Mothership.getOrder({
     id: order,
   }).then(order => {
     console.log({ order });
@@ -147,17 +158,17 @@ Trader.prototype.getOrder = function(order, callback) {
 };
 
 Trader.prototype.buy = function(amount, price, callback) {
-  this.addOrder('bid', amount, price, callback);
+  return this.addOrder('bid', amount, price, callback);
 };
 
 Trader.prototype.sell = function(amount, price, callback) {
-  this.addOrder('ask', amount, price, callback);
+  return this.addOrder('ask', amount, price, callback);
 };
 
 Trader.prototype.checkOrder = function(order, callback) {
   console.log('in checkOrder');
 
-  Mothership.getOrder({
+  return Mothership.getOrder({
     id: order,
   }).then(order => {
     console.log({ order });
@@ -171,7 +182,7 @@ Trader.prototype.checkOrder = function(order, callback) {
 Trader.prototype.cancelOrder = function(order, callback) {
   console.log('in cancelOrder');
 
-  Mothership.deleteOrder({
+  return Mothership.deleteOrder({
     userId: this.key,
     accountId: this.secret,
     id: order,
@@ -194,7 +205,7 @@ Trader.getCapabilities = function() {
     markets: [
       {
         pair: ['TTHR', 'MSP'],
-        minimalOrder: { amount: 1, unit: 'currency' },
+        minimalOrder: { amount: 1, unit: 'asset' },
         precision: 3,
       },
 
@@ -248,7 +259,8 @@ Trader.getCapabilities = function() {
       },
     ],
     requires: ['key', 'secret'],
-    providesHistory: false,
+    providesHistory: 'tid',
+    providesFullHistory: true,
     tid: 'tid',
     tradable: true,
   };

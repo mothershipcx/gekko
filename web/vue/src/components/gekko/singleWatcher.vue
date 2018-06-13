@@ -102,6 +102,7 @@ export default {
     moment: mom => moment.utc(mom),
     fmt: mom => moment.utc(mom).format('YYYY-MM-DD HH:mm'),
     getCandles: function() {
+      console.log('in getCandles singleWatcher method')
 
       this.candleFetch = 'fetching';
 
@@ -138,6 +139,8 @@ export default {
         };
 
       post('getCandles', config, (err, res) => {
+        console.log('received candles in getCandles cb')
+        console.log({res: JSON.stringify(res)})
         this.candleFetch = 'fetched';
         this.candles = res.map(c => {
           c.start = moment.unix(c.start).utc().format();
