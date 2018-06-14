@@ -16,8 +16,8 @@ var Trader = function(config) {
     this.key = config.key;
     this.secret = config.secret;
     // cur: tmp
-    this.key = 'wrIOn5EaTHQTuDTafLknmMsxOJn1';
-    this.secret = '-LEj9plimcKlqKw9I-b3';
+    this.key = 'psdIYTh6RKbdkRlN1SS9BUpeAyw1';
+    this.secret = '-LEyW8YLJ3smToU3lwmQ';
     this.currency = config.currency.toUpperCase();
     this.asset = config.asset.toUpperCase();
   }
@@ -167,9 +167,10 @@ Trader.prototype.sell = function(amount, price, callback) {
 
 Trader.prototype.checkOrder = function(order, callback) {
   console.log('in checkOrder');
+  console.log({order})
 
   return Mothership.getOrder({
-    id: order,
+    id: order.id,
   }).then(order => {
     console.log({ order });
     const isFilled = order.status === 'FILLED';
@@ -181,11 +182,12 @@ Trader.prototype.checkOrder = function(order, callback) {
 
 Trader.prototype.cancelOrder = function(order, callback) {
   console.log('in cancelOrder');
+  console.log({order})
 
   return Mothership.deleteOrder({
     userId: this.key,
     accountId: this.secret,
-    id: order,
+    id: order.id,
     instrument: this.pair,
   }).then(order => {
     console.log({ order });
