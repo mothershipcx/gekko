@@ -10,14 +10,10 @@ var Trader = function(config) {
   _.bindAll(this);
   console.log('created trader');
   console.log({ config: JSON.stringify(config) });
-  console.log({ configKey: config.key });
 
   if (_.isObject(config)) {
     this.key = config.key;
     this.secret = config.secret;
-    // cur: tmp
-    this.key = 'psdIYTh6RKbdkRlN1SS9BUpeAyw1';
-    this.secret = '-LEyW8YLJ3smToU3lwmQ';
     this.currency = config.currency.toUpperCase();
     this.asset = config.asset.toUpperCase();
   }
@@ -67,7 +63,6 @@ Trader.prototype.getTrades = function(since, callback, descending) {
   return Mothership.getTrades({
     instrument: this.pair,
   }).then(trades => {
-    // console.log({ trades });
     const adaptedTrades = trades.map(trade => ({
       date: moment(trade.time).unix(),
       price: trade.price,
