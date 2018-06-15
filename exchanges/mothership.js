@@ -14,12 +14,18 @@ var Trader = function(config) {
   if (_.isObject(config)) {
     this.key = config.key;
     this.secret = config.secret;
+    // this.key = 'psdIYTh6RKbdkRlN1SS9BUpeAyw1';
+    // this.secret = '-LF2Qns8MxmLjswRXHqb';
     this.currency = config.currency.toUpperCase();
     this.asset = config.asset.toUpperCase();
   }
 
   this.pair = this.asset + this.currency;
   this.name = 'mothership';
+
+  this.mothership = new Mothership()
+
+  this.mothership.getTime().then(time => console.log(`time: ${JSON.stringify(time)}`))
 
   this.market = _.find(Trader.getCapabilities().markets, market => {
     return market.pair[0] === this.currency && market.pair[1] === this.asset;
@@ -60,7 +66,7 @@ Trader.prototype.getTrades = function(since, callback, descending) {
   console.log('in getTrades');
   console.log({ pair: this.pair });
   console.log({ secret: this.secret });
-  return Mothership.getTrades({
+  return this.mothership.getTrades({
     instrument: this.pair,
   }).then(trades => {
     const adaptedTrades = trades.map(trade => ({
@@ -82,7 +88,7 @@ Trader.prototype.getPortfolio = function(callback) {
   console.log({key: this.key});
   console.log({secret: this.secret});
 
-  return Mothership.getAccount({
+  return this.mothership.getAccount({
     userId: this.key,
     accountId: this.secret,
   }).then(account => {
@@ -105,7 +111,7 @@ Trader.prototype.getFee = function(callback) {
 
 Trader.prototype.getTicker = function(callback) {
   console.log('get ticker in gekko');
-  return Mothership.getTicker({ instrument: this.pair }).then(ticker =>
+  return this.mothership.getTicker({ instrument: this.pair }).then(ticker =>
     callback(undefined, ticker)
   );
 };
@@ -119,7 +125,7 @@ Trader.prototype.addOrder = function(side, amount, price, callback) {
   console.log({accountId: this.secret})
   console.log({instument: this.pair})
 
-  return Mothership.postOrder({
+  return this.mothership.postOrder({
     userId: this.key,
     accountId: this.secret,
     amount,
@@ -137,7 +143,7 @@ Trader.prototype.addOrder = function(side, amount, price, callback) {
 Trader.prototype.getOrder = function(order, callback) {
   console.log('in getOrder');
 
-  return Mothership.getOrder({
+  return this.mothership.getOrder({
     id: order,
   }).then(order => {
     console.log({ order });
@@ -164,7 +170,7 @@ Trader.prototype.checkOrder = function(order, callback) {
   console.log('in checkOrder');
   console.log({order})
 
-  return Mothership.getOrder({
+  return this.mothership.getOrder({
     id: order.id,
   }).then(order => {
     console.log({ order });
@@ -179,7 +185,7 @@ Trader.prototype.cancelOrder = function(order, callback) {
   console.log('in cancelOrder');
   console.log({order})
 
-  return Mothership.deleteOrder({
+  return this.mothership.deleteOrder({
     userId: this.key,
     accountId: this.secret,
     id: order.id,
